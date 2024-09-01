@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>定制地图标记</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://api.map.baidu.com/getscript?v=2.0&ak=C56Qdc560TQKtQaavS0NTPUYupsZHspI&services=&t=20240731110958"></script>
+    <style>
+        #map { height: 100vh; width: 75%; float: right; }
+        #legend { height: 100vh; width: 25%; float: left; overflow: auto; background: #f4f4f4; padding: 20px; }
+        .custom-icon div {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="legend"></div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var map = L.map('map').setView([25.034280, 121.564253], 13); // 设置地图初始位置
+            var legend = document.getElementById('legend');
+            var colors = {};
+            
+            L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            fetch('https://raw.githubusercontent.com/TesllaW/tuxun/18cfe0d56ab03ee78a1907ede28f748c670f5631/json.json')
+                .then(response => response.json())
+                .then(jsonData => {
+                    jsonData.customCoordinates.forEach(data => {
+                        var panoId = data.panoId;
+                        var type = panoId.substring(6, 10) + panoId.substring(panoId.length - 2);
+                        
+                        if (!colors[type]) {
+                            colors[type] = '#' + Math.floor(Math.random() * 16777215).toString(16);
+                            legend.innerHTML += `<p>${type}: <span style="color:${colors[type]};">${colors[type]}</span></p>`;
+                        }
+
+                        fetch(`https://api.map.baidu.com/panorama/v2?ak=C56Qdc560TQKtQaavS0NTPUYupsZHspI&panoid=${panoId}&width=400&height=300&pois=1`)
+                        .then(response => response.json())
+                        .then(data => {
+                            L.marker([data.location.lat, data.location.lng], {
+                                icon: L.divIcon({
+                                    className: 'custom-icon',
+                                    html: `<div style="background-color: ${colors[type]};">●</div>`
+                                })
+                            }).addTo(map);
+                        });
+                    });
+                })
+                .catch(error => console.error('Error loading the JSON data:', error));
+        });
+    </script>
+</body>
+</html>
